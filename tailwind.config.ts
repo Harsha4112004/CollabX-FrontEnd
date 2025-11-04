@@ -1,11 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // everything in src
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/styles/**/*.{css,scss}",
+    "./index.html",              // ✅ REQUIRED for Vite builds
+    "./src/**/*.{js,ts,jsx,tsx}" // ✅ Your React components
   ],
   theme: {
     extend: {
@@ -25,4 +22,4 @@ export default {
     },
   },
   plugins: [],
-}
+};
