@@ -8,7 +8,6 @@ import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { jwtDecode } from "jwt-decode";
-import logo from "@/assets/logo.svg";
 
 interface DecodedToken {
   username?: string;

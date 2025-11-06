@@ -1,5 +1,5 @@
 // src/pages/LoginPage.tsx
-import React, { useState, FormEvent, useEffect } from "react";
+import React, { useState, FormEvent} from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
