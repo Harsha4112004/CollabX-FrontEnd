@@ -1,34 +1,39 @@
-import React, { useState, FormEvent } from "react";
+// src/pages/LoginPage.tsx
+import React, { useState, FormEvent, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const { setUser } = useAuth();
+
+  // ✅ Login handler
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.post(
+      // 1️⃣ Send login request
+      const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/login`,
-        { email, password },
-        { withCredentials: true } // if backend uses cookies
+        { email, password }
       );
 
-      console.log("Login response:", response.data);
-      navigate(`/dashboard`);
+      // 2️⃣ Store token in localStorage
+      localStorage.setItem("token", res.data.token);
+      setUser(res.data.user);
+      navigate("/dashboard");
     } catch (err: any) {
       console.error(err);
-      setError(
-        err.response?.data?.message || "Something went wrong. Please try again."
-      );
+      setError(err.response?.data?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -42,27 +47,18 @@ const LoginPage: React.FC = () => {
         transition={{ duration: 0.6 }}
         className="bg-black/80 backdrop-blur-lg p-10 rounded-2xl shadow-2xl max-w-md w-full border border-gray-800"
       >
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-md flex items-center justify-center">
             <span className="text-white font-bold">CX</span>
           </div>
-          <h2 className="text-3xl font-extrabold mt-4 text-white">
-            Welcome Back
-          </h2>
-          <p className="text-gray-400 mt-2">
-            Sign in to continue collaborating in real-time
-          </p>
+          <h2 className="text-3xl font-extrabold mt-4 text-white">Welcome Back</h2>
+          <p className="text-gray-400 mt-2">Sign in to continue collaborating in real-time</p>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="bg-red-600 text-white px-4 py-2 rounded mb-4 text-center">
-            {error}
-          </div>
+          <div className="bg-red-600 text-white px-4 py-2 rounded mb-4 text-center">{error}</div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-gray-300 mb-2" htmlFor="email">
@@ -93,10 +89,7 @@ const LoginPage: React.FC = () => {
               required
             />
             <div className="text-right mt-2">
-              <a
-                href="/forgot-password"
-                className="text-indigo-400 hover:text-purple-500 text-sm"
-              >
+              <a href="/forgot-password" className="text-indigo-400 hover:text-purple-500 text-sm">
                 Forgot Password?
               </a>
             </div>

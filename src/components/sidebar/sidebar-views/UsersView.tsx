@@ -39,7 +39,7 @@ function UsersView() {
     const leaveRoom = () => {
         socket.disconnect()
         setStatus(USER_STATUS.DISCONNECTED)
-        navigate("/", {
+        navigate("/dashboard", {
             replace: true,
         })
     }

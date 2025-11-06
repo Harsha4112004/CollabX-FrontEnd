@@ -1,20 +1,12 @@
-import React, { useState, FormEvent, ChangeEvent, useEffect } from "react";
+import React, { useState, FormEvent, ChangeEvent } from "react";
 import { motion } from "framer-motion";
-import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
-import {jwtDecode} from "jwt-decode";
 
 interface Project {
   id: number;
   name: string;
   description: string;
-}
-
-interface UserPayload {
-  name: string;
-  email: string;
-  [key: string]: any;
 }
 
 const initialProjects: Project[] = [
@@ -23,29 +15,29 @@ const initialProjects: Project[] = [
 ];
 
 const Dashboard: React.FC = () => {
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [newProjectName, setNewProjectName] = useState<string>("");
   const [newProjectDesc, setNewProjectDesc] = useState<string>("");
-  const [user, setUser] = useState<UserPayload | null>(null);
 
-  useEffect(() => {
-    try {
-      const token = Cookies.get("token"); // 👈 name of your JWT cookie
-      if (token) {
-        const decoded: UserPayload = jwtDecode(token);
-        setUser(decoded);
-        console.log("Decoded JWT Payload:", decoded);
-      }
-      else {
-        console.log("no token");
-        
-      }
-    } catch (error) {
-      console.error("Error decoding token:", error);
-    }
-  }, []);
+
+  // Logout function
+const handleLogout = () => {
+  // 🧹 Clear authentication data locally
+  localStorage.removeItem("token");
+
+  // Clear any user state in context
+  setUser(null);
+
+  // Optionally, redirect to login page
+  navigate("/login");
+};
+
+const handlework = () => {
+  navigate("/work");
+}
 
   const handleCreateProject = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,10 +71,7 @@ const Dashboard: React.FC = () => {
             <a href="#" className="hover:text-indigo-400">Settings</a>
           </nav>
           <button
-            onClick={async () => {
-              await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/logout`);
-              navigate("/login");
-            }}
+            onClick={handleLogout}
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
           >
             Logout
@@ -92,7 +81,7 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-10">
-        {/* ✅ User Info Card */}
+        {/* User Info */}
         {user && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -100,17 +89,16 @@ const Dashboard: React.FC = () => {
             className="bg-black/70 p-6 rounded-xl border border-gray-800 shadow-lg flex items-center justify-between"
           >
             <div>
-              <h2 className="text-2xl font-semibold">{user.name}</h2>
+              <h2 className="text-2xl font-semibold">{user.username || user.name}</h2>
               <p className="text-gray-400">{user.email}</p>
             </div>
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-[2px] rounded-full">
-              <div className="bg-black rounded-full px-5 py-2 text-sm font-medium">
-                Logged In
-              </div>
+              <div className="bg-black rounded-full px-5 py-2 text-sm font-medium">Logged In</div>
             </div>
           </motion.div>
         )}
 
+        {/* Projects Header */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Your Projects</h2>
           <button
@@ -119,7 +107,14 @@ const Dashboard: React.FC = () => {
           >
             + Create Project
           </button>
+          <button
+            onClick={handlework}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
+          >
+            Start Work
+          </button>
         </div>
+
 
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -150,18 +145,14 @@ const Dashboard: React.FC = () => {
                 type="text"
                 placeholder="Project Name"
                 value={newProjectName}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewProjectName(e.target.value)
-                }
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setNewProjectName(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
               <textarea
                 placeholder="Project Description"
                 value={newProjectDesc}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                  setNewProjectDesc(e.target.value)
-                }
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNewProjectDesc(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />

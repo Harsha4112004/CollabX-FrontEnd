@@ -1,129 +1,187 @@
-import { useAppContext } from "@/context/AppContext"
-import { useSocket } from "@/context/SocketContext"
-import { SocketEvent } from "@/types/socket"
-import { USER_STATUS } from "@/types/user"
-import { ChangeEvent, FormEvent, useEffect, useRef } from "react"
-import { toast } from "react-hot-toast"
-import { useLocation, useNavigate } from "react-router-dom"
-import { v4 as uuidv4 } from "uuid"
-import logo from "@/assets/logo.svg"
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useAppContext } from "@/context/AppContext";
+import { useSocket } from "@/context/SocketContext";
+import { SocketEvent } from "@/types/socket";
+import { USER_STATUS } from "@/types/user";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import { jwtDecode } from "jwt-decode";
+import logo from "@/assets/logo.svg";
 
-const FormComponent = () => {
-    const location = useLocation()
-    const { currentUser, setCurrentUser, status, setStatus } = useAppContext()
-    const { socket } = useSocket()
-
-    const usernameRef = useRef<HTMLInputElement | null>(null)
-    const navigate = useNavigate()
-
-    const createNewRoomId = () => {
-        setCurrentUser({ ...currentUser, roomId: uuidv4() })
-        toast.success("Created a new Room Id")
-        usernameRef.current?.focus()
-    }
-
-    const handleInputChanges = (e: ChangeEvent<HTMLInputElement>) => {
-        const name = e.target.name
-        const value = e.target.value
-        setCurrentUser({ ...currentUser, [name]: value })
-    }
-
-    const validateForm = () => {
-        if (currentUser.username.trim().length === 0) {
-            toast.error("Enter your username")
-            return false
-        } else if (currentUser.roomId.trim().length === 0) {
-            toast.error("Enter a room id")
-            return false
-        } else if (currentUser.roomId.trim().length < 5) {
-            toast.error("ROOM Id must be at least 5 characters long")
-            return false
-        } else if (currentUser.username.trim().length < 3) {
-            toast.error("Username must be at least 3 characters long")
-            return false
-        }
-        return true
-    }
-
-    const joinRoom = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        if (status === USER_STATUS.ATTEMPTING_JOIN) return
-        if (!validateForm()) return
-        toast.loading("Joining room...")
-        setStatus(USER_STATUS.ATTEMPTING_JOIN)
-        socket.emit(SocketEvent.JOIN_REQUEST, currentUser)
-    }
-
-    useEffect(() => {
-        if (currentUser.roomId.length > 0) return
-        if (location.state?.roomId) {
-            setCurrentUser({ ...currentUser, roomId: location.state.roomId })
-            if (currentUser.username.length === 0) {
-                toast.success("Enter your username")
-            }
-        }
-    }, [currentUser, location.state?.roomId, setCurrentUser])
-
-    useEffect(() => {
-        if (status === USER_STATUS.DISCONNECTED && !socket.connected) {
-            socket.connect()
-            return
-        }
-
-        const isRedirect = sessionStorage.getItem("redirect") || false
-
-        if (status === USER_STATUS.JOINED && !isRedirect) {
-            const username = currentUser.username
-            sessionStorage.setItem("redirect", "true")
-            navigate(`/editor/${currentUser.roomId}`, {
-                state: {
-                    username,
-                },
-            })
-        } else if (status === USER_STATUS.JOINED && isRedirect) {
-            sessionStorage.removeItem("redirect")
-            setStatus(USER_STATUS.DISCONNECTED)
-            socket.disconnect()
-            socket.connect()
-        }
-    }, [currentUser, location.state?.redirect, navigate, setStatus, socket, status])
-
-    return (
-        <div className="flex w-full max-w-[500px] flex-col items-center justify-center gap-4 p-4 sm:w-[500px] sm:p-8">
-            <img src={logo} alt="Logo" className="w-full"/>
-            <form onSubmit={joinRoom} className="flex w-full flex-col gap-4">
-                <input
-                    type="text"
-                    name="roomId"
-                    placeholder="Room Id"
-                    className="w-full rounded-md border border-gray-500 bg-darkHover px-3 py-3 focus:outline-none"
-                    onChange={handleInputChanges}
-                    value={currentUser.roomId}
-                />
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    className="w-full rounded-md border border-gray-500 bg-darkHover px-3 py-3 focus:outline-none"
-                    onChange={handleInputChanges}
-                    value={currentUser.username}
-                    ref={usernameRef}
-                />
-                <button
-                    type="submit"
-                    className="mt-2 w-full rounded-md bg-primary px-8 py-3 text-lg font-semibold text-black"
-                >
-                    Join
-                </button>
-            </form>
-            <button
-                className="cursor-pointer select-none underline"
-                onClick={createNewRoomId}
-            >
-                Generate Unique Room Id
-            </button>
-        </div>
-    )
+interface DecodedToken {
+  username?: string;
+  email?: string;
+  exp?: number;
 }
 
-export default FormComponent
+const FormComponent: React.FC = () => {
+  const { currentUser, setCurrentUser, status, setStatus } = useAppContext();
+  const { socket } = useSocket();
+  const navigate = useNavigate();
+
+  const [joinRoomId, setJoinRoomId] = useState("");
+  const [username, setUsername] = useState("");
+
+  // ✅ Extract username from JWT
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in first.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode<DecodedToken>(token);
+      const name = decoded.username || decoded.email?.split("@")[0] || "Guest";
+
+      setUsername(name);
+      setCurrentUser({
+        ...currentUser,
+        username: name,
+      });
+    } catch (err) {
+      console.error("Invalid token:", err);
+      toast.error("Session expired. Please log in again.");
+      navigate("/login");
+    }
+  }, [setCurrentUser, navigate, currentUser]);
+
+  // ✅ Create Room
+  const handleCreateRoom = async () => {
+    const newRoomId = uuidv4();
+    const userData = {
+      username,
+      roomId: newRoomId,
+    };
+
+    setCurrentUser(userData);
+    toast.success("Room created!");
+
+    try {
+      await navigator.clipboard.writeText(newRoomId);
+      toast("Room ID copied to clipboard!", { icon: "📋" });
+    } catch {
+      toast("Could not copy room ID", { icon: "⚠️" });
+    }
+
+    startSession(userData);
+  };
+
+  // ✅ Join Room
+  const handleJoinRoom = () => {
+    if (!joinRoomId.trim()) {
+      toast.error("Please enter a Room ID");
+      return;
+    }
+
+    const userData = {
+      username,
+      roomId: joinRoomId.trim(),
+    };
+
+    setCurrentUser(userData);
+    toast.success("Joining room...");
+    startSession(userData);
+  };
+
+  const startSession = (userData: { username: string; roomId: string }) => {
+    if (status === USER_STATUS.ATTEMPTING_JOIN) return;
+
+    toast.loading("Connecting...");
+    setStatus(USER_STATUS.ATTEMPTING_JOIN);
+    socket.emit(SocketEvent.JOIN_REQUEST, userData);
+  };
+
+  useEffect(() => {
+    if (status === USER_STATUS.JOINED) {
+      navigate(`/editor/${currentUser.roomId}`, {
+        state: { username: currentUser.username },
+      });
+    }
+  }, [status, navigate, currentUser]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6 }}
+        className="bg-black/70 backdrop-blur-lg p-10 rounded-2xl shadow-2xl max-w-md w-full border border-gray-800"
+      >
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-extrabold text-white">
+            Welcome, {username}
+          </h2>
+          <p className="text-gray-400 mt-2">
+            Start a new session or join an existing one
+          </p>
+        </div>
+
+        {/* Join Room */}
+        <div className="space-y-4 mb-8">
+          <label
+            htmlFor="roomId"
+            className="block text-gray-300 font-medium text-sm"
+          >
+            Room ID
+          </label>
+          <input
+            type="text"
+            id="roomId"
+            placeholder="Enter Room ID to Join"
+            value={joinRoomId}
+            onChange={(e) => setJoinRoomId(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            onClick={handleJoinRoom}
+            disabled={status === USER_STATUS.ATTEMPTING_JOIN}
+            className={`w-full px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 transform ${
+              status === USER_STATUS.ATTEMPTING_JOIN
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97]"
+            }`}
+          >
+            {status === USER_STATUS.ATTEMPTING_JOIN
+              ? "Joining..."
+              : "Join Room"}
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center my-6">
+          <div className="flex-grow h-px bg-gray-700" />
+          <span className="px-3 text-gray-400 text-sm">OR</span>
+          <div className="flex-grow h-px bg-gray-700" />
+        </div>
+
+        {/* Create Room */}
+        <button
+          onClick={handleCreateRoom}
+          disabled={status === USER_STATUS.ATTEMPTING_JOIN}
+          className={`w-full px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 transform ${
+            status === USER_STATUS.ATTEMPTING_JOIN
+              ? "bg-gray-600 cursor-not-allowed"
+              : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97]"
+          }`}
+        >
+          {status === USER_STATUS.ATTEMPTING_JOIN
+            ? "Creating..."
+            : "Create Room"}
+        </button>
+
+        {/* Info */}
+        <p className="text-gray-400 text-xs mt-6 text-center">
+          Logged in as{" "}
+          <span className="text-indigo-400 font-semibold">{username}</span>.
+        </p>
+      </motion.div>
+    </div>
+  );
+};
+
+export default FormComponent;
