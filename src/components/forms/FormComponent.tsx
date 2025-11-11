@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Users, Plus, LogIn, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useSocket } from "@/context/SocketContext";
 import { SocketEvent } from "@/types/socket";
@@ -22,8 +23,10 @@ const FormComponent: React.FC = () => {
 
   const [joinRoomId, setJoinRoomId] = useState("");
   const [username, setUsername] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // ✅ Extract username from JWT
+  // ✅ Extract username from JWT - FIXED: Removed currentUser from dependencies
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -37,6 +40,7 @@ const FormComponent: React.FC = () => {
       const name = decoded.username || decoded.email?.split("@")[0] || "Guest";
 
       setUsername(name);
+      // Only set if username is different to prevent unnecessary updates
       setCurrentUser({
         ...currentUser,
         username: name,
@@ -46,7 +50,7 @@ const FormComponent: React.FC = () => {
       toast.error("Session expired. Please log in again.");
       navigate("/login");
     }
-  }, [setCurrentUser, navigate, currentUser]);
+  }, [setCurrentUser, navigate]); // Removed currentUser from dependencies
 
   // ✅ Create Room
   const handleCreateRoom = async () => {
@@ -55,15 +59,33 @@ const FormComponent: React.FC = () => {
       username,
       roomId: newRoomId,
     };
-
+    
     setCurrentUser(userData);
-    toast.success("Room created!");
+    setError(null);
+    toast.success("Room created successfully!");
 
     try {
       await navigator.clipboard.writeText(newRoomId);
-      toast("Room ID copied to clipboard!", { icon: "📋" });
+      setCopied(true);
+      toast("Room ID copied to clipboard!", { 
+        icon: "📋",
+        style: {
+          background: '#1f2937',
+          color: '#fff',
+          border: '1px solid #374151'
+        }
+      });
+      
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast("Could not copy room ID", { icon: "⚠️" });
+      toast("Could not copy room ID", { 
+        icon: "⚠️",
+        style: {
+          background: '#1f2937',
+          color: '#fff',
+          border: '1px solid #374151'
+        }
+      });
     }
 
     startSession(userData);
@@ -72,7 +94,7 @@ const FormComponent: React.FC = () => {
   // ✅ Join Room
   const handleJoinRoom = () => {
     if (!joinRoomId.trim()) {
-      toast.error("Please enter a Room ID");
+      setError("Please enter a Room ID");
       return;
     }
 
@@ -82,104 +104,195 @@ const FormComponent: React.FC = () => {
     };
 
     setCurrentUser(userData);
+    setError(null);
     toast.success("Joining room...");
+
     startSession(userData);
   };
 
   const startSession = (userData: { username: string; roomId: string }) => {
     if (status === USER_STATUS.ATTEMPTING_JOIN) return;
 
-    toast.loading("Connecting...");
+    toast.loading("Connecting to room...", {
+      style: {
+        background: '#1f2937',
+        color: '#fff',
+        border: '1px solid #374151'
+      }
+    });
     setStatus(USER_STATUS.ATTEMPTING_JOIN);
     socket.emit(SocketEvent.JOIN_REQUEST, userData);
   };
 
+  // ✅ Fixed: Added proper dependencies and condition
   useEffect(() => {
-    if (status === USER_STATUS.JOINED) {
+    if (status === USER_STATUS.JOINED && currentUser.roomId) {
+      sessionStorage.removeItem("homepageRefreshed");
+
       navigate(`/editor/${currentUser.roomId}`, {
         state: { username: currentUser.username },
       });
     }
-  }, [status, navigate, currentUser]);
+  }, [status, navigate, currentUser.roomId, currentUser.username]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6 }}
-        className="bg-black/70 backdrop-blur-lg p-10 rounded-2xl shadow-2xl max-w-md w-full border border-gray-800"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-white">
-            Welcome, {username}
-          </h2>
-          <p className="text-gray-400 mt-2">
-            Start a new session or join an existing one
-          </p>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, x: 50 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.8, delay: 0.2 }}
+      className="bg-gray-900/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-800/50"
+    >
+      {/* Header */}
+      <div className="text-center mb-8">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2, type: "spring" }}
+          className="w-16 h-16 mx-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg mb-4"
+        >
+          <Users className="w-8 h-8 text-white" />
+        </motion.div>
+        
+        <motion.h2
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-extrabold text-white mb-2"
+        >
+          Welcome, {username}!
+        </motion.h2>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="text-gray-400 text-lg"
+        >
+          Start collaborating in real-time
+        </motion.p>
+      </div>
 
-        {/* Join Room */}
-        <div className="space-y-4 mb-8">
-          <label
-            htmlFor="roomId"
-            className="block text-gray-300 font-medium text-sm"
+      {/* Notifications */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/30 backdrop-blur-sm"
           >
-            Room ID
+            <div className="flex items-center space-x-2 text-red-400">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Join Room Section */}
+      <div className="space-y-6 mb-8">
+        <div>
+          <label className="block text-gray-300 mb-3 font-medium" htmlFor="roomId">
+            Join Existing Room
           </label>
-          <input
-            type="text"
-            id="roomId"
-            placeholder="Enter Room ID to Join"
-            value={joinRoomId}
-            onChange={(e) => setJoinRoomId(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <button
-            onClick={handleJoinRoom}
-            disabled={status === USER_STATUS.ATTEMPTING_JOIN}
-            className={`w-full px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 transform ${
-              status === USER_STATUS.ATTEMPTING_JOIN
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97]"
-            }`}
-          >
-            {status === USER_STATUS.ATTEMPTING_JOIN
-              ? "Joining..."
-              : "Join Room"}
-          </button>
+          <div className="relative">
+            <input
+              type="text"
+              id="roomId"
+              placeholder="Enter Room ID"
+              value={joinRoomId}
+              onChange={(e) => {
+                setJoinRoomId(e.target.value);
+                setError(null);
+              }}
+              className="w-full pl-4 pr-4 py-4 rounded-xl bg-gray-800/50 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200"
+            />
+          </div>
         </div>
 
-        {/* Divider */}
-        <div className="flex items-center my-6">
-          <div className="flex-grow h-px bg-gray-700" />
-          <span className="px-3 text-gray-400 text-sm">OR</span>
-          <div className="flex-grow h-px bg-gray-700" />
-        </div>
-
-        {/* Create Room */}
-        <button
-          onClick={handleCreateRoom}
+        <motion.button
+          onClick={handleJoinRoom}
           disabled={status === USER_STATUS.ATTEMPTING_JOIN}
-          className={`w-full px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 transform ${
+          whileHover={status !== USER_STATUS.ATTEMPTING_JOIN ? { scale: 1.02 } : {}}
+          whileTap={status !== USER_STATUS.ATTEMPTING_JOIN ? { scale: 0.98 } : {}}
+          className={`w-full px-6 py-4 rounded-xl font-semibold text-white shadow-lg focus:outline-none focus:ring-4 transition-all duration-200 relative overflow-hidden group ${
             status === USER_STATUS.ATTEMPTING_JOIN
               ? "bg-gray-600 cursor-not-allowed"
-              : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl hover:scale-[1.03] active:scale-[0.97]"
+              : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl hover:shadow-indigo-500/25"
           }`}
         >
-          {status === USER_STATUS.ATTEMPTING_JOIN
-            ? "Creating..."
-            : "Create Room"}
-        </button>
+          <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <span className="relative z-10 flex items-center justify-center space-x-2">
+            {status === USER_STATUS.ATTEMPTING_JOIN ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <LogIn className="w-5 h-5" />
+                <span>Join Room</span>
+              </>
+            )}
+          </span>
+        </motion.button>
+      </div>
 
-        {/* Info */}
-        <p className="text-gray-400 text-xs mt-6 text-center">
-          Logged in as{" "}
-          <span className="text-indigo-400 font-semibold">{username}</span>.
-        </p>
-      </motion.div>
-    </div>
+      {/* Divider */}
+      <div className="relative my-8">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-700/50"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-3 bg-gray-900 text-gray-400 font-medium">Or</span>
+        </div>
+      </div>
+
+      {/* Create Room Section */}
+      <motion.button
+        onClick={handleCreateRoom}
+        disabled={status === USER_STATUS.ATTEMPTING_JOIN}
+        whileHover={status !== USER_STATUS.ATTEMPTING_JOIN ? { scale: 1.02 } : {}}
+        whileTap={status !== USER_STATUS.ATTEMPTING_JOIN ? { scale: 0.98 } : {}}
+        className={`w-full px-6 py-4 rounded-xl font-semibold text-white shadow-lg focus:outline-none focus:ring-4 transition-all duration-200 relative overflow-hidden group mb-6 ${
+          status === USER_STATUS.ATTEMPTING_JOIN
+            ? "bg-gray-600 cursor-not-allowed"
+            : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-xl hover:shadow-indigo-500/25"
+        }`}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <span className="relative z-10 flex items-center justify-center space-x-2">
+          {status === USER_STATUS.ATTEMPTING_JOIN ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Creating...</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-5 h-5" />
+              <span>Create New Room</span>
+            </>
+          )}
+        </span>
+      </motion.button>
+
+      {/* Copy Success Message */}
+      <AnimatePresence>
+        {copied && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="mb-4 p-3 rounded-xl bg-green-500/20 border border-green-500/30 backdrop-blur-sm"
+          >
+            <div className="flex items-center space-x-2 text-green-400">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <p className="text-sm font-medium">Room ID copied to clipboard!</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
