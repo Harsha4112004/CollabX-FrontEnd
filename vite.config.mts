@@ -2,9 +2,17 @@ import react from "@vitejs/plugin-react"
 import { fileURLToPath, URL } from "url"
 import { defineConfig } from "vite"
 
-// https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react()],
+
+    optimizeDeps: {
+        include: ["@splinetool/react-spline"], // ✅ REQUIRED
+    },
+
+    ssr: {
+        noExternal: ["@splinetool/react-spline"], // ✅ FIXES forwardRef error
+    },
+
     build: {
         chunkSizeWarningLimit: 1600,
         rollupOptions: {
@@ -21,6 +29,7 @@ export default defineConfig({
             },
         },
     },
+
     resolve: {
         alias: [
             {
@@ -29,10 +38,12 @@ export default defineConfig({
             },
         ],
     },
+
     preview: {
         port: 5173
     },
-    server:{
+
+    server: {
         open: true,
     }
 })
