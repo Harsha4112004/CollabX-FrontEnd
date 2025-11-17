@@ -7,6 +7,7 @@ import { formatDate } from "@/utils/formateDate"
 import { FormEvent, useRef } from "react"
 import { LuSendHorizonal } from "react-icons/lu"
 import { v4 as uuidV4 } from "uuid"
+import { motion } from "framer-motion"
 
 function ChatInput() {
     const { currentUser } = useAppContext()
@@ -34,23 +35,28 @@ function ChatInput() {
     }
 
     return (
-        <form
+        <motion.form
             onSubmit={handleSendMessage}
-            className="flex justify-between rounded-md border border-primary"
+            className="flex items-center gap-2 rounded-2xl border border-gray-700/50 bg-gray-900/50 backdrop-blur-sm p-1 shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
         >
             <input
                 type="text"
-                className="w-full flex-grow rounded-md border-none bg-dark p-2 outline-none"
-                placeholder="Enter a message..."
+                className="w-full flex-grow rounded-2xl border-none bg-transparent p-4 text-gray-100 placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                placeholder="Type your message..."
                 ref={inputRef}
             />
-            <button
-                className="flex items-center justify-center rounded-r-md  bg-primary p-2 text-black"
+            <motion.button
+                className="flex items-center justify-center rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 p-3 text-white shadow-lg transition-all duration-300 hover:shadow-indigo-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-gray-900"
                 type="submit"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
             >
-                <LuSendHorizonal size={24} />
-            </button>
-        </form>
+                <LuSendHorizonal size={20} />
+            </motion.button>
+        </motion.form>
     )
 }
 
