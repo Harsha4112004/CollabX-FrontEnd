@@ -10,7 +10,7 @@
         "preview": "vite preview --host 0.0.0.0"
     },
     "dependencies": {
-        "@splinetool/react-spline": "^4.1.0",
+        "@splinetool/react-spline": "^2.2.6",
         "@uiw/codemirror-extensions-color": "^4.21.21",
         "@uiw/codemirror-extensions-hyper-link": "^4.21.21",
         "@uiw/codemirror-extensions-langs": "^4.21.21",
