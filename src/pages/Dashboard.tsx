@@ -1,11 +1,9 @@
-import React, { Suspense } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Spline from "@splinetool/react-spline";
 import Carousel from '../components/dashboard/carousel';
-
-// Dynamically import Spline with no SSR to avoid conflicts
-const Spline = React.lazy(() => import('@splinetool/react-spline'));
 
 const Dashboard: React.FC = () => {
   const { user, setUser } = useAuth();
@@ -82,42 +80,33 @@ const Dashboard: React.FC = () => {
       {/* =================== MAIN =================== */}
       <main className="relative max-w-7xl mx-auto px-6 py-20 z-10">
 
-        {/* FULLSCREEN ROBOT BACKGROUND with Suspense */}
+        {/* FULLSCREEN ROBOT BACKGROUND */}
         <div className="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden">
           <div className="absolute top-0 right-[-15%] w-[1300px] h-full opacity-80">
-            <Suspense fallback={
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-gray-400">Loading 3D scene...</div>
-              </div>
-            }>
-              <Spline
-                scene="https://prod.spline.design/yWXLbXR26D3-Iz4z/scene.splinecode"
-                onLoad={(splineApp) => {
-                  // Only add event listeners in browser environment
-                  if (typeof window !== 'undefined') {
-                    window.addEventListener("mousemove", (e) => {
-                      const x = (e.clientX / window.innerWidth - 0.5) * 2;
-                      const y = (e.clientY / window.innerHeight - 0.5) * -2;
+            <Spline
+              scene="https://prod.spline.design/yWXLbXR26D3-Iz4z/scene.splinecode"
+              onLoad={(splineApp) => {
+                window.addEventListener("mousemove", (e) => {
+                  const x = (e.clientX / window.innerWidth - 0.5) * 2;
+                  const y = (e.clientY / window.innerHeight - 0.5) * -2;
 
-                      const head = splineApp.findObjectByName("Head");
-                      if (head) {
-                        head.rotation.y = x * 0.2;
-                        head.rotation.x = -y * 0.5;
-                      }
-
-                      const torso = splineApp.findObjectByName("Torso");
-                      if (torso) {
-                        torso.rotation.y = x * 0.2;
-                      }
-                    });
+                  const head = splineApp.findObjectByName("Head");
+                  if (head) {
+                    head.rotation.y = x * 0.2;
+                    head.rotation.x = -y * 0.5;
                   }
-                }}
-              />
-            </Suspense>
+
+                  const torso = splineApp.findObjectByName("Torso");
+                  if (torso) {
+                    torso.rotation.y = x * 0.2;
+                  }
+                });
+              }}
+            />
           </div>
         </div>
 
-        {/* Welcome Section */}
+        {/* Welcome Section ONLY */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -132,29 +121,26 @@ const Dashboard: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Carousel Section */}
-        <div style={{ height: '300px', position: 'relative' }} className="mb-8">
-          <Carousel
-            baseWidth={300}
-            autoplay={true}
-            autoplayDelay={3000}
-            pauseOnHover={true}
-            loop={true}
-            round={true}
-          />
-        </div>
-
-        {/* Start Work Button */}
-        <div className="w-full flex justify-center mt-8">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg hover:shadow-purple-500/30 transition-all"
-            onClick={() => navigate('/work')}
-          >
-            Start Work
-          </motion.button>
-        </div>
+<div style={{ height: '300px', position: 'relative' }}>
+  <Carousel
+    baseWidth={300}
+    autoplay={true}
+    autoplayDelay={3000}
+    pauseOnHover={true}
+    loop={true}
+    round={true}
+  />
+</div>
+<div className="w-full flex justify-center mt-8">
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg hover:shadow-purple-500/30 transition-all"
+    onClick={() => navigate('/work')}
+  >
+    Start Work
+  </motion.button>
+</div>
 
       </main>
     </div>
