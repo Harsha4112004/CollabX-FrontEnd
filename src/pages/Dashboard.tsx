@@ -1,180 +1,148 @@
-import React, { useState, FormEvent, ChangeEvent } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-interface Project {
-  id: number;
-  name: string;
-  description: string;
-}
-
-const initialProjects: Project[] = [
-  { id: 1, name: "CollabX Web App", description: "Real-time coding platform" },
-  { id: 2, name: "AI Code Assistant", description: "AI helper integration" },
-];
+import Spline from "@splinetool/react-spline";
+import Carousel from '../components/dashboard/carousel';
 
 const Dashboard: React.FC = () => {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [newProjectName, setNewProjectName] = useState<string>("");
-  const [newProjectDesc, setNewProjectDesc] = useState<string>("");
 
-
-  // Logout function
-const handleLogout = () => {
-  // 🧹 Clear authentication data locally
-  localStorage.removeItem("token");
-
-  // Clear any user state in context
-  setUser(null);
-
-  // Optionally, redirect to login page
-  navigate("/login");
-};
-
-const handlework = () => {
-  navigate("/work");
-}
-
-  const handleCreateProject = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const newProject: Project = {
-      id: projects.length + 1,
-      name: newProjectName.trim(),
-      description: newProjectDesc.trim(),
-    };
-
-    setProjects([...projects, newProject]);
-    setNewProjectName("");
-    setNewProjectDesc("");
-    setShowModal(false);
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    navigate("/login");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black text-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-gray-100 font-sans overflow-hidden">
+
+      {/* Light Glow Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+      </div>
+
       {/* Header */}
-      <header className="bg-black/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50">
+      <motion.header
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="border-b border-gray-800/50 sticky top-0 bg-black/20 backdrop-blur-xl z-50"
+      >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-md flex items-center justify-center">
-              <span className="text-white font-bold">CX</span>
-            </div>
-            <h1 className="text-2xl font-bold">CollabX Dashboard</h1>
-          </div>
-          <nav className="flex space-x-6">
-            <a href="#" className="hover:text-indigo-400">Projects</a>
-            <a href="#" className="hover:text-indigo-400">Teams</a>
-            <a href="#" className="hover:text-indigo-400">Settings</a>
-          </nav>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-10">
-        {/* User Info */}
-        {user && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-black/70 p-6 rounded-xl border border-gray-800 shadow-lg flex items-center justify-between"
-          >
-            <div>
-              <h2 className="text-2xl font-semibold">{user.username || user.name}</h2>
-              <p className="text-gray-400">{user.email}</p>
+          <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-bold text-lg">CX</span>
             </div>
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-[2px] rounded-full">
-              <div className="bg-black rounded-full px-5 py-2 text-sm font-medium">Logged In</div>
-            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              CollabX
+            </h1>
           </motion.div>
-        )}
 
-        {/* Projects Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold">Your Projects</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            + Create Project
-          </button>
-          <button
-            onClick={handlework}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
-          >
-            Start Work
-          </button>
-        </div>
-
-
-        {/* Projects Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          <div className="flex items-center space-x-4">
             <motion.div
-              key={project.id}
-              whileHover={{ scale: 1.03 }}
-              className="bg-black/70 p-6 rounded-xl border border-gray-800 shadow-lg cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              className="flex items-center space-x-3 bg-gray-800/50 rounded-xl px-4 py-2 border border-gray-700/50"
             >
-              <h3 className="text-xl font-semibold mb-2">{project.name}</h3>
-              <p className="text-gray-400">{project.description}</p>
-            </motion.div>
-          ))}
-        </div>
-      </main>
-
-      {/* Create Project Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-black/80 p-8 rounded-2xl shadow-2xl border border-gray-800 w-full max-w-md"
-          >
-            <h2 className="text-2xl font-bold mb-4">Create New Project</h2>
-            <form className="space-y-4" onSubmit={handleCreateProject}>
-              <input
-                type="text"
-                placeholder="Project Name"
-                value={newProjectName}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setNewProjectName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-              <textarea
-                placeholder="Project Description"
-                value={newProjectDesc}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNewProjectDesc(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-              <div className="flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all"
-                >
-                  Create
-                </button>
+              <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">
+                  {user?.username?.charAt(0).toUpperCase() || "U"}
+                </span>
               </div>
-            </form>
-          </motion.div>
+              <span className="text-white font-medium">{user?.username}</span>
+            </motion.div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLogout}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-gray-700 to-gray-800 text-white border border-gray-600 hover:border-gray-500 transition-all duration-300 font-semibold"
+            >
+              Logout
+            </motion.button>
+          </div>
         </div>
-      )}
+      </motion.header>
+
+      {/* =================== MAIN =================== */}
+      <main className="relative max-w-7xl mx-auto px-6 py-20 z-10">
+
+        {/* FULLSCREEN ROBOT BACKGROUND */}
+        <div className="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden">
+          <div className="absolute top-0 right-[-15%] w-[1300px] h-full opacity-80">
+            <Spline
+              scene="https://prod.spline.design/yWXLbXR26D3-Iz4z/scene.splinecode"
+              onLoad={(splineApp) => {
+                window.addEventListener("mousemove", (e) => {
+                  const x = (e.clientX / window.innerWidth - 0.5) * 2;
+                  const y = (e.clientY / window.innerHeight - 0.5) * -2;
+
+                  const head = splineApp.findObjectByName("Head");
+                  if (head) {
+                    head.rotation.y = x * 0.2;
+                    head.rotation.x = -y * 0.5;
+                  }
+
+                  const torso = splineApp.findObjectByName("Torso");
+                  if (torso) {
+                    torso.rotation.y = x * 0.2;
+                  }
+                });
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Welcome Section ONLY */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 z-10 relative"
+        >
+          <h2 className="text-6xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent drop-shadow-2xl">
+            Welcome back, {user?.username}!
+          </h2>
+
+          <p className="text-xl text-gray-400 max-w-2xl">
+            CollabX environment is synced and ready, bringing you into a real-time collaborative coding space where AI, speed, and teamwork come together.
+          </p>
+        </motion.div>
+
+<div style={{ height: '300px', position: 'relative' }}>
+  <Carousel
+    baseWidth={300}
+    autoplay={true}
+    autoplayDelay={3000}
+    pauseOnHover={true}
+    loop={true}
+    round={true}
+  />
+</div>
+<div className="w-full flex justify-center mt-8">
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg hover:shadow-purple-500/30 transition-all"
+    onClick={() => navigate('/work')}
+  >
+    Start Work
+  </motion.button>
+</div>
+
+      </main>
     </div>
   );
 };
