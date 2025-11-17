@@ -1,49 +1,26 @@
-import react from "@vitejs/plugin-react"
-import { fileURLToPath, URL } from "url"
-import { defineConfig } from "vite"
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { fileURLToPath, URL } from "url";
 
 export default defineConfig({
-    plugins: [react()],
+  plugins: [react()],
 
-    optimizeDeps: {
-        include: ["@splinetool/react-spline"], // ✅ REQUIRED
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
+  },
 
-    ssr: {
-        noExternal: ["@splinetool/react-spline"], // ✅ FIXES forwardRef error
-    },
+  server: {
+    open: true,
+    port: 5173
+  },
 
-    build: {
-        chunkSizeWarningLimit: 1600,
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (id.includes("node_modules")) {
-                        return id
-                            .toString()
-                            .split("node_modules/")[1]
-                            .split("/")[0]
-                            .toString()
-                    }
-                },
-            },
-        },
-    },
+  preview: {
+    port: 5173
+  },
 
-    resolve: {
-        alias: [
-            {
-                find: "@",
-                replacement: fileURLToPath(new URL("./src", import.meta.url)),
-            },
-        ],
-    },
-
-    preview: {
-        port: 5173
-    },
-
-    server: {
-        open: true,
-    }
-})
+  build: {
+    chunkSizeWarningLimit: 1600,
+  }
+});
